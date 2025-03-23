@@ -22,19 +22,50 @@
             stroke: #999;
             stroke-opacity: 0.6;
             fill: none;
-            marker-end: url(#arrowhead);
+            marker-end: url(#arrowhead-grey);
         }
         .link.double {
-            marker-start: url(#arrowhead);
-            marker-end: url(#arrowhead);
+            marker-start: url(#arrowhead-grey);
+            marker-end: url(#arrowhead-grey);
         }
         .node image {
-            width: 250px; /* Adjusted node size */
-            height: 250px; /* Adjusted node size */
+            width: 250px; /* Default node size for PC */
+            height: 250px; /* Default node size for PC */
+        }
+
+        /* Mobile styles (9:16 aspect ratio) */
+        @media (max-aspect-ratio: 9/16) {
+            .node image {
+                width: 150px; /* Smaller node size for mobile */
+                height: 150px; /* Smaller node size for mobile */
+            }
+            .link {
+                stroke-width: 2px !important; /* Thinner links for mobile */
+            }
+            .link[value="3"] {
+                stroke: maroon; /* Maroon color for 3-point links on mobile */
+                marker-end: url(#arrowhead-maroon); /* Maroon arrowhead for 3-point links */
+            }
+            .link.double[value="3"] {
+                marker-start: url(#arrowhead-maroon); /* Maroon arrowhead for 3-point double links */
+                marker-end: url(#arrowhead-maroon);
+            }
+        }
+
+        /* Tooltip styling */
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px;
+            border-radius: 3px;
+            font-size: 12px;
+            pointer-events: none; /* Prevent tooltip from interfering with hover */
         }
     </style>
 </head>
 <body>
+    <div class="tooltip" style="opacity: 0;"></div> <!-- Tooltip element -->
     <script>
         const data = {
             "nodes": [
@@ -72,9 +103,12 @@
             .attr("height", "100%")
             .attr("preserveAspectRatio", "xMidYMid meet"); // Scale proportionally
 
-        // Add arrowhead marker definition
-        svg.append("defs").append("marker")
-            .attr("id", "arrowhead")
+        // Add arrowhead marker definitions
+        const defs = svg.append("defs");
+
+        // Grey arrowhead
+        defs.append("marker")
+            .attr("id", "arrowhead-grey")
             .attr("viewBox", "0 0 10 10")
             .attr("refX", 9)
             .attr("refY", 5)
@@ -85,9 +119,23 @@
             .attr("d", "M 0 0 L 10 5 L 0 10 z")
             .attr("fill", "#999");
 
-        const simulation = d3.forceSimulation(data.nodes)
-            .force("link", d3.forceLink(data.links).id(d => d.id).distance(250)) // Adjusted distance
-            .force("charge", d3.forceManyBody().strength(-600)) // Adjusted strength
+        // Maroon arrowhead
+        defs.append("marker")
+            .attr("id", "arrowhead-maroon")
+            .attr("viewBox", "0 0 10 10")
+            .attr("refX", 9)
+            .attr("refY", 5)
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M 0 0 L 10 5 L 0 10 z")
+            .attr("fill", "maroon");
+
+        // Initialize simulation
+        let simulation = d3.forceSimulation(data.nodes)
+            .force("link", d3.forceLink(data.links).id(d => d.id).distance(getLinkDistance()))
+            .force("charge", d3.forceManyBody().strength(getChargeStrength()))
             .force("center", d3.forceCenter(window.innerWidth / 2, window.innerHeight / 2));
 
         // Create links
@@ -100,7 +148,10 @@
                 const reciprocal = data.links.find(l => l.source === d.target && l.target === d.source);
                 return reciprocal ? "link double" : "link";
             })
-            .attr("stroke-width", d => d.value * 2); // Keep the thickness doubled
+            .attr("stroke-width", d => d.value * 2) // Keep the thickness doubled
+            .attr("value", d => d.value) // Add value attribute for mobile styling
+            .on("mouseover", showTooltip) // Show tooltip on hover
+            .on("mouseout", hideTooltip); // Hide tooltip on mouseout
 
         // Create nodes
         const node = svg.append("g")
@@ -108,10 +159,10 @@
             .data(data.nodes)
             .enter().append("image")
             .attr("xlink:href", d => d.image)
-            .attr("x", -125) // Adjusted for 250px size (250px / 2)
-            .attr("y", -125) // Adjusted for 250px size (250px / 2)
-            .attr("width", 250) // Adjusted node size
-            .attr("height", 250) // Adjusted node size
+            .attr("x", getNodeOffset()) // Adjusted for node size
+            .attr("y", getNodeOffset()) // Adjusted for node size
+            .attr("width", getNodeSize()) // Adjusted node size
+            .attr("height", getNodeSize()) // Adjusted node size
             .call(d3.drag()
                 .on("start", dragstarted)
                 .on("drag", dragged)
@@ -127,20 +178,20 @@
                     const dx = d.target.x - d.source.x;
                     const dy = d.target.y - d.source.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
-                    const offset = 125; // Adjusted for 250px size (250px / 2)
+                    const offset = getNodeOffset(); // Adjusted for node size
                     return d.target.x - (dx / dist) * offset;
                 })
                 .attr("y2", d => {
                     const dx = d.target.x - d.source.x;
                     const dy = d.target.y - d.source.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
-                    const offset = 125; // Adjusted for 250px size (250px / 2)
+                    const offset = getNodeOffset(); // Adjusted for node size
                     return d.target.y - (dy / dist) * offset;
                 });
 
             node
-                .attr("x", d => d.x - 125) // Adjusted for 250px size (250px / 2)
-                .attr("y", d => d.y - 125); // Adjusted for 250px size (250px / 2)
+                .attr("x", d => d.x - getNodeOffset()) // Adjusted for node size
+                .attr("y", d => d.y - getNodeOffset()); // Adjusted for node size
         });
 
         // Drag functions
@@ -165,8 +216,46 @@
             svg.attr("width", window.innerWidth)
                .attr("height", window.innerHeight);
             simulation.force("center", d3.forceCenter(window.innerWidth / 2, window.innerHeight / 2))
+                     .force("link", d3.forceLink(data.links).id(d => d.id).distance(getLinkDistance()))
+                     .force("charge", d3.forceManyBody().strength(getChargeStrength()))
                      .alphaTarget(0.3).restart();
         });
+
+        // Tooltip functions
+        const tooltip = d3.select(".tooltip");
+
+        function showTooltip(event, d) {
+            tooltip
+                .style("opacity", 1)
+                .html(`${d.source.id} to ${d.target.id}: ${d.value} points`) // Include giver and receiver names
+                .style("left", `${event.pageX + 5}px`)
+                .style("top", `${event.pageY - 10}px`);
+        }
+
+        function hideTooltip() {
+            tooltip.style("opacity", 0);
+        }
+
+        // Helper functions for responsive adjustments
+        function isMobile() {
+            return window.matchMedia("(max-aspect-ratio: 9/16)").matches;
+        }
+
+        function getNodeSize() {
+            return isMobile() ? 150 : 250; // 150px for mobile, 250px for PC
+        }
+
+        function getNodeOffset() {
+            return getNodeSize() / 2; // Half of node size
+        }
+
+        function getLinkDistance() {
+            return isMobile() ? 150 : 250; // 150px for mobile, 250px for PC
+        }
+
+        function getChargeStrength() {
+            return isMobile() ? -400 : -600; // Adjusted for mobile and PC
+        }
     </script>
 </body>
 </html>

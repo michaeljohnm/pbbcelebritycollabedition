@@ -2,9 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voting Visualization</title>
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Prevent scrollbars */
+            width: 100%;
+            height: 100%;
+        }
+        svg {
+            width: 100vw; /* Full viewport width */
+            height: 100vh; /* Full viewport height */
+            border: 1px solid #ccc;
+        }
         .link {
             stroke: #999;
             stroke-opacity: 0.6;
@@ -16,13 +29,8 @@
             marker-end: url(#arrowhead);
         }
         .node image {
-            width: 80px; /* Increased size */
-            height: 80px; /* Increased size */
-        }
-        svg {
-            width: 1000px; /* Increased size */
-            height: 800px; /* Increased size */
-            border: 1px solid #ccc;
+            width: 250px; /* Adjusted node size */
+            height: 250px; /* Adjusted node size */
         }
     </style>
 </head>
@@ -59,11 +67,10 @@
             ]
         };
 
-        const width = 1000, height = 800;
-
         const svg = d3.select("body").append("svg")
-            .attr("width", width)
-            .attr("height", height);
+            .attr("width", "100%")
+            .attr("height", "100%")
+            .attr("preserveAspectRatio", "xMidYMid meet"); // Scale proportionally
 
         // Add arrowhead marker definition
         svg.append("defs").append("marker")
@@ -79,9 +86,9 @@
             .attr("fill", "#999");
 
         const simulation = d3.forceSimulation(data.nodes)
-            .force("link", d3.forceLink(data.links).id(d => d.id).distance(150))
-            .force("charge", d3.forceManyBody().strength(-500))
-            .force("center", d3.forceCenter(width / 2, height / 2));
+            .force("link", d3.forceLink(data.links).id(d => d.id).distance(250)) // Adjusted distance
+            .force("charge", d3.forceManyBody().strength(-600)) // Adjusted strength
+            .force("center", d3.forceCenter(window.innerWidth / 2, window.innerHeight / 2));
 
         // Create links
         const link = svg.append("g")
@@ -93,7 +100,7 @@
                 const reciprocal = data.links.find(l => l.source === d.target && l.target === d.source);
                 return reciprocal ? "link double" : "link";
             })
-            .attr("stroke-width", d => d.value); // Thickness based on points
+            .attr("stroke-width", d => d.value * 2); // Keep the thickness doubled
 
         // Create nodes
         const node = svg.append("g")
@@ -101,10 +108,10 @@
             .data(data.nodes)
             .enter().append("image")
             .attr("xlink:href", d => d.image)
-            .attr("x", -40) // Adjusted for larger size
-            .attr("y", -40) // Adjusted for larger size
-            .attr("width", 80) // Increased size
-            .attr("height", 80) // Increased size
+            .attr("x", -125) // Adjusted for 250px size (250px / 2)
+            .attr("y", -125) // Adjusted for 250px size (250px / 2)
+            .attr("width", 250) // Adjusted node size
+            .attr("height", 250) // Adjusted node size
             .call(d3.drag()
                 .on("start", dragstarted)
                 .on("drag", dragged)
@@ -115,31 +122,51 @@
             link
                 .attr("x1", d => d.source.x)
                 .attr("y1", d => d.source.y)
-                .attr("x2", d => d.target.x)
-                .attr("y2", d => d.target.y);
+                .attr("x2", d => {
+                    // Offset the end of the link to avoid covering the arrowhead
+                    const dx = d.target.x - d.source.x;
+                    const dy = d.target.y - d.source.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const offset = 125; // Adjusted for 250px size (250px / 2)
+                    return d.target.x - (dx / dist) * offset;
+                })
+                .attr("y2", d => {
+                    const dx = d.target.x - d.source.x;
+                    const dy = d.target.y - d.source.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const offset = 125; // Adjusted for 250px size (250px / 2)
+                    return d.target.y - (dy / dist) * offset;
+                });
 
             node
-                .attr("x", d => d.x - 40) // Adjusted for larger size
-                .attr("y", d => d.y - 40); // Adjusted for larger size
+                .attr("x", d => d.x - 125) // Adjusted for 250px size (250px / 2)
+                .attr("y", d => d.y - 125); // Adjusted for 250px size (250px / 2)
         });
 
         // Drag functions
         function dragstarted(event, d) {
             if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
+            d.fx = d.x; // Fix the node's position
             d.fy = d.y;
         }
 
         function dragged(event, d) {
-            d.fx = event.x;
+            d.fx = event.x; // Update the fixed position during drag
             d.fy = event.y;
         }
 
         function dragended(event, d) {
             if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
+            // Keep the node in place by retaining fx and fy
         }
+
+        // Handle window resize
+        window.addEventListener("resize", () => {
+            svg.attr("width", window.innerWidth)
+               .attr("height", window.innerHeight);
+            simulation.force("center", d3.forceCenter(window.innerWidth / 2, window.innerHeight / 2))
+                     .alphaTarget(0.3).restart();
+        });
     </script>
 </body>
 </html>

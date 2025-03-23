@@ -7,7 +7,7 @@
     <style>
         .link {
             stroke: #999;
-            stroke-width: 2px;
+            stroke-opacity: 0.6;
         }
         .node image {
             width: 50px;
@@ -20,17 +20,31 @@
         const data = {
             "nodes": [
                 {"id": "ACLEY", "image": "pbb_duo_imgs/ACLEY.JPG"},
+                {"id": "CHARBI", "image": "pbb_duo_imgs/CHARBI.JPG"},
+                {"id": "DUSNYR", "image": "pbb_duo_imgs/DUSNYR.JPG"},
                 {"id": "JOKLA", "image": "pbb_duo_imgs/JOKLA.JPG"},
                 {"id": "KIZ", "image": "pbb_duo_imgs/KIZ.JPG"},
+                {"id": "MENT", "image": "pbb_duo_imgs/MENT.JPG"},
                 {"id": "RAMI", "image": "pbb_duo_imgs/RAMI.JPG"},
                 {"id": "WILVER", "image": "pbb_duo_imgs/WILVER.JPG"}
             ],
             "links": [
-                {"source": "GIVING_DUO", "target": "ACLEY", "value": 3},
-                {"source": "GIVING_DUO", "target": "JOKLA", "value": 3},
-                {"source": "GIVING_DUO", "target": "KIZ", "value": 3},
-                {"source": "GIVING_DUO", "target": "RAMI", "value": 3},
-                {"source": "GIVING_DUO", "target": "WILVER", "value": 3}
+                {"source": "ACLEY", "target": "KIZ", "value": 1},
+                {"source": "ACLEY", "target": "WILVER", "value": 3},
+                {"source": "CHARBI", "target": "ACLEY", "value": 1},
+                {"source": "CHARBI", "target": "RAMI", "value": 3},
+                {"source": "DUSNYR", "target": "RAMI", "value": 1},
+                {"source": "DUSNYR", "target": "WILVER", "value": 3},
+                {"source": "JOKLA", "target": "RAMI", "value": 3},
+                {"source": "JOKLA", "target": "WILVER", "value": 1},
+                {"source": "KIZ", "target": "ACLEY", "value": 3},
+                {"source": "KIZ", "target": "WILVER", "value": 1},
+                {"source": "MENT", "target": "ACLEY", "value": 1},
+                {"source": "MENT", "target": "RAMI", "value": 3},
+                {"source": "RAMI", "target": "ACLEY", "value": 1},
+                {"source": "RAMI", "target": "JOKLA", "value": 3},
+                {"source": "WILVER", "target": "ACLEY", "value": 3},
+                {"source": "WILVER", "target": "KIZ", "value": 1}
             ]
         };
 
@@ -50,7 +64,7 @@
             .data(data.links)
             .enter().append("line")
             .attr("class", "link")
-            .attr("stroke-width", d => d.value);
+            .attr("stroke-width", d => d.value); // Thickness based on points
 
         const node = svg.append("g")
             .selectAll("image")
